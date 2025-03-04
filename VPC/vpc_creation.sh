@@ -31,7 +31,11 @@ create_subnet(){
     cidr=$3
     az=$4
     tag_values=$(pass_tags subnet ${name})
-    subnet_command=$(aws ec2 create-subnet --vpc-id "${vpc_id}" --cidr-block "${cidr}" --availability-zone "${az}" --tag-specifications "${tag_values}")
+    subnet_command=$(aws ec2 create-subnet \
+        --vpc-id "${vpc_id}" \
+        --cidr-block "${cidr}" \
+        --availability-zone "${az}" \
+        --tag-specifications "${tag_values}")
     check_command_success
     subnet_id=$(echo "$subnet_command" | jq -r '.Subnet.SubnetId')
     check_empty $subnet_id
@@ -47,7 +51,10 @@ echo -e "#######################################################################
 vpc_name="myVPC"
 vpc_cidr="172.16.0.0/16"
 echo "Creating VPC"
-vpc_command=$(aws ec2 create-vpc --instance-tenancy "default" --cidr-block "${vpc_cidr}" --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}}]" | jq )
+vpc_command=$(aws ec2 create-vpc \
+    --instance-tenancy "default" \
+    --cidr-block "${vpc_cidr}" \
+    --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}}]" | jq )
 check_command_success
 vpc_id=$(echo $vpc_command | jq | grep "VpcId" | cut -d '"' -f 4)
 check_empty $vpc_id
@@ -73,12 +80,15 @@ echo "privateSubnet2 ID: ${privateSubnet2_ID}"
 
 #CREATE IGW and attach to VPC here
 echo "creating IGW"
-igw=$(aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=vpcIGW},{Key=Environment,Value=PROD}]')
+igw=$(aws ec2 create-internet-gateway \
+    --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=vpcIGW},{Key=Environment,Value=PROD}]')
 check_command_success
 igwID=$(echo ${igw} | jq . | grep "InternetGatewayId" | cut -d '"' -f 4)
 check_empty $igwID
 echo -e " Created Internet Gateway ${igwID}. \nAttaching it to VPC"
-aws ec2 attach-internet-gateway --internet-gateway-id ${igwID} --vpc-id ${vpc_id}
+aws ec2 attach-internet-gateway \
+    --internet-gateway-id ${igwID} \
+    --vpc-id ${vpc_id}
 check_command_success
 
 #CREATE NAT GateWay
@@ -88,7 +98,9 @@ elasticIP=$(echo $ipallocate | jq . | grep "AllocationId" | cut -d '"' -f 4)
 check_empty $elasticIP
 
 echo "Creating NAT GW in public subnet ${publicSubnet1_ID}"
-nat_command=$(aws ec2 create-nat-gateway --subnet-id ${publicSubnet1_ID} --allocation-id ${elasticIP}  \
+nat_command=$(aws ec2 create-nat-gateway \
+    --subnet-id ${publicSubnet1_ID} \
+    --allocation-id ${elasticIP}  \
     --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=myNATGateway},{Key=Environment,Value=PROD}]')
 check_command_success
 echo "Waiting 2 minutes for NAT to come online"
@@ -105,12 +117,19 @@ check_command_success
 privaterouteID=$(echo ${privateroute} | jq . | grep "RouteTableId" | cut -d '"' -f 4)
 check_empty $privaterouteID
 echo -e "Created Private Route table ${privaterouteID} \nAdding Rule"
-aws ec2 create-route --route-table-id ${privaterouteID} --destination-cidr-block 0.0.0.0/0 --nat-gateway-id ${natID}
+aws ec2 create-route \
+    --route-table-id ${privaterouteID} \
+    --destination-cidr-block 0.0.0.0/0 \
+    --nat-gateway-id ${natID}
 check_command_success
 echo "Associating route table ${privaterouteID} with subnets ${privateSubnet1_ID} and ${privateSubnet2_ID}"
-aws ec2 associate-route-table --subnet-id ${privateSubnet1_ID} --route-table-id ${privaterouteID}
+aws ec2 associate-route-table \
+    --subnet-id ${privateSubnet1_ID} \
+    --route-table-id ${privaterouteID}
 check_command_success
-aws ec2 associate-route-table --subnet-id ${privateSubnet2_ID} --route-table-id ${privaterouteID}
+aws ec2 associate-route-table \
+    --subnet-id ${privateSubnet2_ID} \
+    --route-table-id ${privaterouteID}
 check_command_success
 
 
@@ -122,12 +141,18 @@ check_command_success
 publicrouteID=$(echo ${publicroute} | jq . | grep "RouteTableId" | cut -d '"' -f 4)
 check_empty $publicrouteID
 echo -e "Created Public Route table ${publicrouteID} \nAdding Rule"
-aws ec2 create-route --route-table-id ${publicrouteID} --destination-cidr-block 0.0.0.0/0 --gateway-id ${igwID}
+aws ec2 create-route \
+    --route-table-id ${publicrouteID} \
+    --destination-cidr-block 0.0.0.0/0 --gateway-id ${igwID}
 check_command_success
 echo "Associating route table ${publicrouteID} with subnets ${publicSubnet1_ID} and ${publicSubnet2_ID}"
-aws ec2 associate-route-table --subnet-id ${publicSubnet1_ID} --route-table-id ${publicrouteID}
+aws ec2 associate-route-table\
+     --subnet-id ${publicSubnet1_ID} \
+     --route-table-id ${publicrouteID}
 check_command_success
-aws ec2 associate-route-table --subnet-id ${publicSubnet2_ID} --route-table-id ${publicrouteID}
+aws ec2 associate-route-table \
+    --subnet-id ${publicSubnet2_ID} \
+    --route-table-id ${publicrouteID}
 check_command_success
 
 echo "####################################################################################################"
