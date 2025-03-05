@@ -96,6 +96,8 @@ check_command_success
 vpc_id=$(echo $vpc_command | jq | grep "VpcId" | cut -d '"' -f 4)
 check_empty $vpc_id
 echo "VPC Created ${vpc_name} ${vpc_id}"
+aws ec2 modify-vpc-attribute --enable-dns-hostnames '{"Value":true}' --vpc-id "${vpc_id}"
+check_command_success
 #vpc_id=""
 
 #CREATE SUBNETS HERE
@@ -114,6 +116,12 @@ echo "publicSubnet1 ID: ${publicSubnet1_ID}"
 echo "publicSubnet2 ID: ${publicSubnet2_ID}"
 echo "privateSubnet1 ID: ${privateSubnet1_ID}"
 echo "privateSubnet2 ID: ${privateSubnet2_ID}"
+
+aws ec2 modify-subnet-attribute --subnet-id ${publicSubnet1_ID} --map-public-ip-on-launch
+check_command_success
+aws ec2 modify-subnet-attribute --subnet-id ${publicSubnet2_ID} --map-public-ip-on-launch
+check_command_success
+
 
 #CREATE IGW and attach to VPC here
 echo "creating IGW"

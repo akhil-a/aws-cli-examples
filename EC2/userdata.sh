@@ -8,6 +8,6 @@ sudo systemctl restart httpd.service php-fpm.service
 sudo systemctl enable httpd.service php-fpm.service
 
 git clone https://github.com/akhil-a/test-site.git
-cp -r aws-elb-site/* /var/www/html/
+cp -r test-site/* /var/www/html/
 chown -R apache:apache /var/www/html/*
 
