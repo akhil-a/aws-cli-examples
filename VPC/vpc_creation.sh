@@ -236,41 +236,43 @@ add_sg_rule ${albSG_ID} "egress" ${sg_proto} ${https_port} ${webSG_ID}
 
 
 
-echo "vpc_name=${vpc_name}" > vpc_details.var
-echo "vpc_id=${vpc_id}" >> vpc_details.var
-echo "vpc_cidr=${vpc_cidr}" >> vpc_details.var
-echo "public_subnet1_name=publicSubnet1"  >> vpc_details.var
-echo "public_subnet1_cidr=172.16.0.0/18"  >> vpc_details.var
-echo "public_subnet1_az=ap-south-1a"  >> vpc_details.var
-echo "public_subnet1_ID=${publicSubnet1_ID}" >> vpc_details.var
+cat <<EOF > vpc_details.var
+vpc_name=${vpc_name}
+vpc_id=${vpc_id}
+vpc_cidr=${vpc_cidr}
 
-echo "public_subnet2_name=publicSubnet2"  >> vpc_details.var
-echo "public_subnet2_cidr=172.16.64.0/18"  >> vpc_details.var
-echo "public_subnet2_az=ap-south-1b"  >> vpc_details.var
-echo "public_subnet2_ID=${publicSubnet2_ID}" >> vpc_details.var
+publicSubnet1_ID=${publicSubnet1_ID}
+publicSubnet1_cidr=172.16.0.0/18
+publicSubnet1_AZ=ap-south-1a
 
-echo "private_subnet1_name=privateSubnet1"  >> vpc_details.var
-echo "private_subnet1_cidr=172.16.128.0/18"  >> vpc_details.var
-echo "private_subnet1_az=ap-south-1a"  >> vpc_details.var
-echo "private_subnet1_ID=${privateSubnet1_ID}" >> vpc_details.var
+publicSubnet2_ID=${publicSubnet2_ID}
+publicSubnet2_cidr=172.16.64.0/18
+publicSubnet2_AZ=ap-south-1b
 
-echo "private_subnet2_name=privateSubnet2"  >> vpc_details.var
-echo "private_subnet2_cidr=172.16.192.0/18"  >> vpc_details.var
-echo "private_subnet2_az=ap-south-1b"  >> vpc_details.var
-echo "private_subnet2_ID=${privateSubnet2_ID}" >> vpc_details.var
+privateSubnet1_ID=${privateSubnet1_ID}
+privateSubnet1_cidr=172.16.128.0/18
+privateSubnet1_AZ=ap-south-1a
 
-echo "igwID=${igwID}" >> vpc_details.var
-echo "natID=${natID}" >> vpc_details.var
+privateSubnet2_ID=${privateSubnet2_ID}
+privateSubnet2_cidr=172.16.192.0/18
+privateSubnet2_AZ=ap-south-1b
 
-echo "privaterouteID=${privaterouteID}"  >> vpc_details.var
-echo "publicrouteID=${publicrouteID}"  >> vpc_details.var
+igwID=${igwID}
+natID=${natID}
 
-echo "webSG_name=${webSG_name}"  >> vpc_details.var
-echo "webSG_ID=${webSG_ID}"  >> vpc_details.var
-echo "bastionSG_name=${bastionSG_name}"  >> vpc_details.var
-echo "bastionSG_ID=${bastionSG_ID}"  >> vpc_details.var
-echo "alb_ID=${albSG_ID}"  >> vpc_details.var
-echo "albSG_name=${albSG_name}"  >> vpc_details.var
+privaterouteID=${privaterouteID}
+publicrouteID=${publicrouteID}
+
+webSG_name=${webSG_name}
+webSG_ID=${webSG_ID}
+
+bastionSG_name=${bastionSG_name}
+bastionSG_ID=${bastionSG_ID}
+
+albSG_name=${albSG_name}
+albSG_ID=${albSG_ID}
+EOF
+
 
 echo "####################################################################################################"
 echo "Script Completed Successfully :)"
