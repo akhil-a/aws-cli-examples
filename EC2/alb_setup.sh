@@ -69,13 +69,25 @@ alb_arn=$(echo $alb_out | jq -r '.LoadBalancers[0].LoadBalancerArn')
 check_empty ${alb_arn}
 echo "Created Application Load Balancer ${alb_name}  : ${alb_arn}"
 
+echo "Create HTTPS Listner and add it to ${alb_name}"
+cert_arn="put-certificate arn here"
+https_listner_out=$(aws elbv2 create-listener \
+    --load-balancer-arn ${alb_arn} \
+    --protocol HTTPS \
+    --port 443 \
+    --certificates CertificateArn=${cert_arn} \
+    --default-actions Type=forward,TargetGroupArn=${tg_arn})
+check_command_success
+https_listener_arn=$(echo $https_listner_out | jq -r '.Listeners[0].ListenerArn')
+check_empty $https_listener_arn
+
 echo "Create Listner for HTTP and add it to ${alb_name}"
 listner_out=$(aws elbv2 create-listener \
     --load-balancer-arn ${alb_arn} \
     --protocol HTTP \
     --port 80 \
-    --default-actions Type=forward,TargetGroupArn=${tg_arn})
-
+    --default-actions '[{"Type":"redirect","RedirectConfig":{"Protocol":"HTTPS","Port":"443","Path":"/","StatusCode":"HTTP_301"}}]')
+check_command_success
 listener_arn=$(echo $listner_out | jq -r '.Listeners[0].ListenerArn')
 check_empty ${listener_arn}
 echo "Created Listner ${listener_arn}  for ${alb_name}"
@@ -85,6 +97,7 @@ echo "alb_arn=${alb_arn}" >> infra.var
 echo "tg_name=${tg_name}" >> infra.var
 echo "tg_arn=${tg_arn}" >> infra.var
 echo "listener_arn=${listener_arn}" >> infra.var
+echo "https_listener_arn=${https_listener_arn}" >> infra.var
 
 
 echo "####################################################################################################"
