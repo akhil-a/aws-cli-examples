@@ -42,6 +42,43 @@ create_subnet(){
     echo "$subnet_id"
 }
 
+add_sg_rule(){
+    sg_id="$1"
+    type="$2"
+    protocol="$3"
+    port="$4"
+    src="$5"
+    if [[ ${src} =~ ^sg- ]]; then
+        src_option="--source-group ${src}"
+    else
+        src_option="--cidr ${src}"
+    fi
+    aws ec2 authorize-security-group-${type} \
+        --group-id ${sg_id} \
+        --protocol ${protocol} \
+        --port ${port} \
+        ${src_option}
+    check_command_success
+    echo "Added ${type} rule ${protocol} ${port} from ${src} on security group ${sg_id}"
+    
+
+}
+
+
+create_sg(){
+    sg_name="$1"
+    sg_desc="$2"
+    sg_out=$(aws ec2 create-security-group  \
+        --group-name ${sg_name}  \
+        --description "${sg_desc}"  \
+        --vpc-id ${vpc_id} \
+        --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${sg_name}}]")
+    check_command_success
+    sg_id=$(echo $sg_out | jq -r .GroupId)
+    check_empty ${sg_id}
+    echo ${sg_id}
+}
+
 
 ##MAIN SECTION
 #CREATE VPC HERE
@@ -155,6 +192,86 @@ aws ec2 associate-route-table \
             --route-table-id ${publicrouteID}
 check_command_success
 
+##Security Groups
+echo "Creating bastion Security Group"
+bastionSG_name="bastionSG"
+bastionSG_ID=$(create_sg $bastionSG_name "Security Group for Bastion Host")
+echo "Created security Group : ${bastionSG_name} ${bastionSG_ID}"
+
+echo "Creating ALB Security Group"
+albSG_name="albSG"
+albSG_ID=$(create_sg $albSG_name "Security Group for ALB")
+echo "Created security Group : ${albSG_name} ${albSG_ID}"
+
+echo "Creating Web Security Group"
+webSG_name="webSG"
+webSG_ID=$(create_sg $webSG_name "Security Group for WEB")
+echo "Created security Group : ${webSG_name} ${webSG_ID}"
+
+sg_proto="tcp"
+http_port="80"
+https_port="443"
+ssh_port="22"
+anywhere="0.0.0.0/0"
+##FOR BASTION SG
+add_sg_rule ${bastionSG_ID} "ingress" ${sg_proto} ${ssh_port} ${anywhere} 
+
+#FOR WEB SG
+add_sg_rule ${webSG_ID} "ingress" ${sg_proto} ${ssh_port} ${bastionSG_ID}
+add_sg_rule ${webSG_ID} "ingress" ${sg_proto} ${http_port} ${albSG_ID}
+add_sg_rule ${webSG_ID} "ingress" ${sg_proto} ${https_port} ${albSG_ID}
+
+##FOR ALB SG
+add_sg_rule ${albSG_ID} "ingress" ${sg_proto} ${http_port} ${anywhere} 
+add_sg_rule ${albSG_ID} "ingress" ${sg_proto} ${https_port} ${anywhere} 
+echo "Removing Outbound rule of ${albSG_name}"
+aws ec2 revoke-security-group-egress \
+    --group-id ${albSG_ID} \
+    --protocol all \
+    --port all \
+    --cidr 0.0.0.0/0
+check_command_success
+add_sg_rule ${albSG_ID} "egress" ${sg_proto} ${http_port} ${webSG_ID} 
+add_sg_rule ${albSG_ID} "egress" ${sg_proto} ${https_port} ${webSG_ID} 
+
+
+
+echo "vpc_name=${vpc_name}" > vpc_details.var
+echo "vpc_id=${vpc_id}" >> vpc_details.var
+echo "vpc_cidr=${vpc_cidr}" >> vpc_details.var
+echo "public_subnet1_name=publicSubnet1"  >> vpc_details.var
+echo "public_subnet1_cidr=172.16.0.0/18"  >> vpc_details.var
+echo "public_subnet1_az=ap-south-1a"  >> vpc_details.var
+echo "public_subnet1_ID=${publicSubnet1_ID}" >> vpc_details.var
+
+echo "public_subnet2_name=publicSubnet2"  >> vpc_details.var
+echo "public_subnet2_cidr=172.16.64.0/18"  >> vpc_details.var
+echo "public_subnet2_az=ap-south-1b"  >> vpc_details.var
+echo "public_subnet2_ID=${publicSubnet2_ID}" >> vpc_details.var
+
+echo "private_subnet1_name=privateSubnet1"  >> vpc_details.var
+echo "private_subnet1_cidr=172.16.128.0/18"  >> vpc_details.var
+echo "private_subnet1_az=ap-south-1a"  >> vpc_details.var
+echo "private_subnet1_ID=${privateSubnet1_ID}" >> vpc_details.var
+
+echo "private_subnet2_name=privateSubnet2"  >> vpc_details.var
+echo "private_subnet2_cidr=172.16.192.0/18"  >> vpc_details.var
+echo "private_subnet2_az=ap-south-1b"  >> vpc_details.var
+echo "private_subnet2_ID=${privateSubnet2_ID}" >> vpc_details.var
+
+echo "igwID=${igwID}" >> vpc_details.var
+echo "natID=${natID}" >> vpc_details.var
+
+echo "privaterouteID=${privaterouteID}"  >> vpc_details.var
+echo "publicrouteID=${publicrouteID}"  >> vpc_details.var
+
+echo "webSG_name=${webSG_name}"  >> vpc_details.var
+echo "webSG_ID=${webSG_ID}"  >> vpc_details.var
+echo "bastionSG_name=${bastionSG_name}"  >> vpc_details.var
+echo "bastionSG_ID=${bastionSG_ID}"  >> vpc_details.var
+echo "alb_ID=${albSG_ID}"  >> vpc_details.var
+echo "albSG_name=${albSG_name}"  >> vpc_details.var
+
 echo "####################################################################################################"
 echo "Script Completed Successfully :)"
 echo -e "####################################################################################################\n"
@@ -172,3 +289,4 @@ echo -e "\nInternet Gateway : \n  Id    :   ${igwID}"
 echo -e "\nNATGateway : \n  Id     :    ${natID}"
 
 echo -e "\nRoute Table : \n  Public Route Table      :   ${publicrouteID}\n  Private Route Table     :   ${privaterouteID}"
+echo -e "\nSecurity Groups: \n  ${webSG_ID}     ${webSG_name}\n  ${albSG_ID}     ${albSG_name}\n  ${bastionSG_ID}     ${bastionSG_name}"
