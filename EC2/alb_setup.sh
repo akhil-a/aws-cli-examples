@@ -1,7 +1,30 @@
 #!/bin/bash
 ##FOR ALB
 ##TARGET GROUP CREATION
+set -e
 
+#Passes tag specification
+pass_tags(){
+    tags="ResourceType=$1,Tags=[{Key=Name,Value=$2},{Key=Environment,Value=PROD}]"
+    echo $tags
+}
+
+#checks if prev command executed successfully
+check_command_success() {
+    if [ $? -ne 0 ]; then
+        echo "Command Failed to create $1" >&2
+        exit 1
+    fi
+}
+
+#check if the ID is empty
+check_empty() {
+    local name="$1"
+    if [ -z "$name" ] || [ "$name" == "null" ]; then
+        echo "Failed to create $name . ID empty" >&2
+        exit 1
+    fi
+}
 
 
 echo "####################################################################################################"
