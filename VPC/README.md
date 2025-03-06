@@ -1,7 +1,7 @@
-# Virtual Private Cloud (VPC)
+# Amazon Virtual Private Cloud (VPC)
 
 ## Overview
-With Amazon Virtual Private Cloud (Amazon VPC), you can launch AWS resources in a logically isolated virtual network that you've defined. This virtual network closely resembles a traditional network that you'd operate in your own data center, with the benefits of using the scalable infrastructure of AWS.
+With [Amazon Virtual Private Cloud (Amazon VPC)](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html), you can launch AWS resources in a logically isolated virtual network that you've defined. This virtual network closely resembles a traditional network that you'd operate in your own data center, with the benefits of using the scalable infrastructure of AWS.
 
 ### Creating a VPC
 We can use `aws ec2 create-vpc` for creating VPC with 172.16.0.0/16 cidr. Its is a good practice to give meaningful name to the AWS resources, Lets call our VPC `myVPC`
